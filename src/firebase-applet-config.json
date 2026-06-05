@@ -1,0 +1,9 @@
+{
+  "apiKey": "STUB_API_KEY",
+  "authDomain": "stub-app.firebaseapp.com",
+  "projectId": "stub-app",
+  "storageBucket": "stub-app.appspot.com",
+  "messagingSenderId": "0000000000",
+  "appId": "1:0000000000:web:0000000",
+  "firestoreDatabaseId": "(default)"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "منصة نبراس للحفظ الذكي",
+  "description": "مساحة تعليمية تفاعلية لطلاب المدارس والجامعات لتوليد بطاقات المذاكرة بالذكاء الاصطناعي وحفظها بنظام التكرار المتباعد لتنمية الفهم والاستذكار.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

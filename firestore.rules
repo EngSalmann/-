@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Catch-all safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Helper to validate incoming user profile document
+    function isValidUserProfile(data) {
+      return data.uid == request.auth.uid
+        && data.email is string
+        && data.email.size() <= 256
+        && data.credits is int
+        && data.credits >= 0
+        && data.streakCount is int
+        && data.streakCount >= 0
+        && data.unlockedBadges is list
+        && data.unlockedBadges.size() <= 50
+        && data.totalReviews is int
+        && data.totalReviews >= 0
+        && data.masteryScore is number
+        && data.masteryScore >= 0.0
+        && data.createdAt is string;
+    }
+
+    // Helper to validate incoming deck document
+    function isValidDeck(data) {
+      return data.id is string
+        && data.id.size() <= 128
+        && data.userId == request.auth.uid
+        && data.title is string
+        && data.title.size() <= 100
+        && data.description is string
+        && data.description.size() <= 500
+        && data.cardCount is int
+        && data.cardCount >= 0;
+    }
+
+    // Helper to validate incoming card document
+    function isValidCard(data) {
+      return data.id is string
+        && data.id.size() <= 128
+        && data.deckId is string
+        && data.deckId.size() <= 128
+        && data.userId == request.auth.uid
+        && data.front is string
+        && data.front.size() <= 2000
+        && data.back is string
+        && data.back.size() <= 4000
+        && (data.arabicFront == null || (data.arabicFront is string && data.arabicFront.size() <= 2000))
+        && (data.arabicBack == null || (data.arabicBack is string && data.arabicBack.size() <= 4000))
+        && data.interval is int
+        && data.interval >= 0
+        && data.eaFactor is number
+        && data.eaFactor >= 1.0
+        && data.repetitions is int
+        && data.repetitions >= 0
+        && data.masteryLevel is int
+        && data.masteryLevel >= 0
+        && data.masteryLevel <= 5
+        && (data.notes == null || (data.notes is string && data.notes.size() <= 4000));
+    }
+
+    // 2. Match rules for collections
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+      allow update: if isOwner(userId) 
+        && isValidUserProfile(request.resource.data)
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      match /decks/{deckId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(deckId) && isValidDeck(request.resource.data);
+        allow delete: if isOwner(userId);
+        allow update: if isOwner(userId) 
+          && isValidDeck(request.resource.data)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.userId == resource.data.userId;
+
+        match /cards/{cardId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidId(cardId) && isValidCard(request.resource.data);
+          allow delete: if isOwner(userId);
+          allow update: if isOwner(userId) 
+            && isValidCard(request.resource.data)
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.deckId == resource.data.deckId
+            && request.resource.data.userId == resource.data.userId;
+        }
+      }
+    }
+  }
+}
